@@ -21,7 +21,7 @@ namespace Chess.Models.General
         }
         public override string ToString()
         {
-            return $"Feld {(char)(Id % 10 + 65)}{Id / 10 + 1}";
+            return $"Feld {(char)(Id % 10 + 65)}{8 - Id / 10}";
         }
     }
 }

@@ -38,12 +38,17 @@ namespace Chess.Service
                             break;
                         case Rook rook:
                             result = ValidateFieldsTillAimAreFree(game, boardService, fieldFigure, destinationField);
+
+                            // Edge case for casteling
                             // King is always on field 0,4 with id 40, bec. the board is reversed for player 2
                             King? k = game.Board.Fields[0, 4].Figure as King;
 
                             if (rook != null && rook.IsFirstMove && k != null && k.IsFirstMove)
                             {
-                                result = true;
+                                // check if fields are free
+                                int colDeltaToKing = k.Id % 10 - rook.Id % 10;
+
+                                result = ValidateFieldsTillAimAreFree(game, boardService, fieldFigure, game.Board.Fields[0, 4]);
                             }
                             break;
                         case Bishop bishop:

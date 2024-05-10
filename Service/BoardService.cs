@@ -44,7 +44,94 @@ namespace Chess.Service
         }
         public bool IsCheck(Player player)
         {
-            throw new NotImplementedException();
+
+            bool isCheck = false;
+
+            // 1. Get the field of king of the player
+
+
+            if (_board != null && _board.Fields != null)
+            {
+                Field kingField = (Field)(from int row in Enumerable.Range(0, _board.Fields.GetLength(0))
+                                   from int col in Enumerable.Range(0, _board.Fields.GetLength(1))
+                                   where _board.Fields[row, col].Figure != null && _board.Fields[row, col].Figure is King && _board.Fields[row, col].Figure != null && _board.Fields[row, col].Figure.Player == player
+                                   select _board.Fields[row, col]);
+
+                // 2. Check Fields around the king
+
+                // Pawn
+
+                if (kingField.Id % 10 > 0 && kingField.Id / 10 > 0 && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 - 1].Figure != null && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 - 1].Figure.Player != player && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 - 1].Figure is Pawn)
+                {
+                    isCheck = true;
+                }
+
+                // Rook and Qeen
+
+                if (!isCheck)
+                {
+                    for (int i = kingField.Id % 10 + 1; i < _board.Fields.GetLength(0); i++)
+                    {
+                        if (_board.Fields[i, kingField.Id / 10].Figure != null)
+                        {
+                            if (_board.Fields[i, kingField.Id / 10].Figure.Player != player && _board.Fields[i, kingField.Id / 10].Figure is Rook || _board.Fields[i, kingField.Id / 10].Figure.Player != player && _board.Fields[i, kingField.Id / 10].Figure is Queen)
+                            {
+                                isCheck = true;
+                                break;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Bishop or Queen
+
+                if (!isCheck)
+                {
+                    for (int i = 1; i < _board.Fields.GetLength(0); i++)
+                    {
+                        if (kingField.Id % 10 + i < _board.Fields.GetLength(0) && kingField.Id / 10 + i < _board.Fields.GetLength(1) && _board.Fields[kingField.Id % 10 + i, kingField.Id / 10 + i].Figure != null)
+                        {
+                            if (_board.Fields[kingField.Id % 10 + i, kingField.Id / 10 + i].Figure.Player != player && _board.Fields[kingField.Id % 10 + i, kingField.Id / 10 + i].Figure is Bishop || _board.Fields[kingField.Id % 10 + i, kingField.Id / 10 + i].Figure.Player != player && _board.Fields[kingField.Id % 10 + i, kingField.Id / 10 + i].Figure is Queen)
+                            {
+                                isCheck = true;
+                                break;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Knight
+
+                if (!isCheck)
+                {
+                    if (kingField.Id % 10 + 2 < _board.Fields.GetLength(0) && kingField.Id / 10 + 1 < _board.Fields.GetLength(1) && _board.Fields[kingField.Id % 10 + 2, kingField.Id / 10 + 1].Figure != null && _board.Fields[kingField.Id % 10 + 2, kingField.Id / 10 + 1].Figure.Player != player && _board.Fields[kingField.Id % 10 + 2, kingField.Id / 10 + 1].Figure is Knight)
+                    {
+                        isCheck = true;
+                    }
+                    else if (kingField.Id % 10 + 1 < _board.Fields.GetLength(0) && kingField.Id / 10 + 2 < _board.Fields.GetLength(1) && _board.Fields[kingField.Id % 10 + 1, kingField.Id / 10 + 2].Figure != null && _board.Fields[kingField.Id % 10 + 1, kingField.Id / 10 + 2].Figure.Player != player && _board.Fields[kingField.Id % 10 + 1, kingField.Id / 10 + 2].Figure is Knight)
+                    {
+                        isCheck = true;
+                    }
+                    else if (kingField.Id % 10 - 1 > 0 && kingField.Id / 10 + 2 < _board.Fields.GetLength(1) && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 + 2].Figure != null && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 + 2].Figure.Player != player && _board.Fields[kingField.Id % 10 - 1, kingField.Id / 10 + 2].Figure is Knight)
+                    {
+                        isCheck = true;
+                    }
+                    else if (kingField.Id % 10 - 2 > 0 && kingField.Id / 10 + 1 < _board.Fields.GetLength(1) && _board.Fields[kingField.Id % 10 - 2, kingField.Id / 10 + 1].Figure != null && _board.Fields[kingField.Id % 10 - 2, kingField.Id / 10 + 1].Figure.Player != player &&)
+                }
+
+            }
+
+
+            return isCheck;
+
         }
         public bool IsCheckAfterMove(int figureId, Field field)
         {
@@ -108,7 +195,7 @@ namespace Chess.Service
         }
         public bool MoveFigure(Game game, Figure figure, Field destinationField)
         {
-            if (game.Player1 != game.PlayerOnTurn)
+            if (game.Player2 != game.PlayerOnTurn)
             {
                 ReverseBoardFields();
             }
@@ -169,7 +256,7 @@ namespace Chess.Service
             }
             finally
             {
-                if (game.Player1 != game.PlayerOnTurn)
+                if (game.Player2 != game.PlayerOnTurn)
                 {
                     ReverseBoardFields();
                 }
@@ -177,7 +264,7 @@ namespace Chess.Service
         }
         public bool MoveFigure(Game game, King king, Rook rook)
         {
-            if (game.Player1 != game.PlayerOnTurn)
+            if (game.Player2 != game.PlayerOnTurn)
             {
                 ReverseBoardFields();
             }
@@ -187,7 +274,7 @@ namespace Chess.Service
             try
             {
                 // 1. check if the move is possible without checking check, checkmate and so on
-                bool isPossible = _figureService.ValidateMovePossibility(game, this, GetFieldOfFigure(king), destinationField );
+                bool isPossible = _figureService.ValidateMovePossibility(game, this, GetFieldOfFigure(king), destinationField);
 
                 // 2. check own check
                 if (isPossible)
@@ -196,9 +283,9 @@ namespace Chess.Service
 
                     GetFieldOfFigure(king).Figure = null;
 
-                    if(rook.IsKingRook) // Short casteling move
+                    if (rook.IsKingRook) // Short casteling move
                     {
-                        game.Board.Fields[destinationField.Id % 10  - 1, destinationField.Id / 10].Figure = rook;
+                        game.Board.Fields[destinationField.Id % 10 - 1, destinationField.Id / 10].Figure = rook;
                     }
                     else // Long casteling move
                     {
@@ -219,7 +306,7 @@ namespace Chess.Service
             }
             finally
             {
-                if (game.Player1 != game.PlayerOnTurn)
+                if (game.Player2 != game.PlayerOnTurn)
                 {
                     ReverseBoardFields();
                 }

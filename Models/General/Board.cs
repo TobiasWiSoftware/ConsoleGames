@@ -21,7 +21,7 @@ namespace Chess.Models.General
             Player settedPlayer = player1;
             int figureIndex = 0;
 
-            for (int row = 0; row < 8; row++)
+            for (int row = 7; row > -1; row--)
             {
                 for (int col = 0; col < 8; col++)
                 {
@@ -37,11 +37,11 @@ namespace Chess.Models.General
                         if (row < 2)
                         {
                             // Player 1
-                            settedPlayer = player1;
+                            settedPlayer = player2;
                         }
                         else
                         {
-                            settedPlayer = player2;
+                            settedPlayer = player1;
                         }
 
 

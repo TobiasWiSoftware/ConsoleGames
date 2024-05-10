@@ -102,16 +102,18 @@ if (p1Name != null && p2Name != null)
                                 symbol = "♕";
                                 break;
                         }
-
-                        if (figure.Player.Id == gameService.Game.Player1.Id)
+                        if (gameService != null && gameService.Game != null)
                         {
-                            Console.ForegroundColor = ConsoleColor.Red;
+                            if (figure.Player.Id == gameService.Game.Player1.Id)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Green;
 
-                        }
-                        else
-                        {
-                            Console.ForegroundColor = ConsoleColor.Green;
+                            }
+                            else
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
 
+                            }
                         }
                         Console.SetCursorPosition(cursorLeft, cursorTop);
                         Console.Write(symbol);
@@ -130,7 +132,14 @@ if (p1Name != null && p2Name != null)
                 else if (col == -1)
                 {
                     Console.SetCursorPosition(cursorLeft, cursorTop);
-                    Console.Write(row + 1);
+                    if (row > -1 && row < 8)
+                    {
+                        Console.Write(board.Fields.GetLength(1) - row);
+                    }
+                    else
+                    {
+                        Console.WriteLine('X');
+                    }
                     cursorLeft += 2;
 
                 }
@@ -165,11 +174,11 @@ if (p1Name != null && p2Name != null)
             try
             {
                 string? s = Console.ReadLine();
-                if (s != null)
+                if (s != null && s.Trim() != "" && s.Length < 3)
                 {
                     s = s.ToUpper();
                     int c = s[0] - 65;
-                    int r = ((int)Char.GetNumericValue(s[1]) - 1);
+                    int r = 8 - ((int)Char.GetNumericValue(s[1]));
                     fieldOfFigure = gameService.GetCurrentBoard().Fields[c, r];
 
                     if (fieldOfFigure.Figure == null || fieldOfFigure.Figure.Player != gameService.Game.PlayerOnTurn)
@@ -182,9 +191,21 @@ if (p1Name != null && p2Name != null)
                     Console.SetCursorPosition(cursorLeft, cursorTop++);
                     Console.Write("You choose " + fieldOfFigure + " with " + fieldOfFigure.Figure + " - " + " exit with EX");
                 }
+                else
+                {
+                    if (s == null || s == "")
+                    {
+                        throw new Exception("No input");
+                    }
+                    else
+                    {
+                        throw new Exception("Input to large - A1 - H8");
+                    }
+                }
             }
             catch (Exception ex)
             {
+                Console.SetCursorPosition(cursorLeft, cursorTop++);
                 Console.WriteLine(ex.Message);
             }
         } while (!correctInformation);
@@ -195,20 +216,20 @@ if (p1Name != null && p2Name != null)
         do
         {
             Console.SetCursorPosition(cursorLeft, cursorTop++);
-            Console.Write("Enter your target field: ");
+            Console.Write($"Enter your target field {(fieldOfFigure != null && fieldOfFigure.Figure != null && fieldOfFigure.Figure.GetType() == typeof(Rook) && ((Rook)fieldOfFigure.Figure).IsFirstMove ? " - CA for casteling " : "")}");
 
             try
             {
                 string? s = Console.ReadLine();
-                if (s != null)
+                if (s != null && s.Trim() != "" && s.Length < 3)
                 {
                     s = s.ToUpper().Trim();
-                    if (s != "EX" && fieldOfFigure != null && fieldOfFigure.Figure != null)
+                    if (s != "EX" && s != "CA" && fieldOfFigure != null && fieldOfFigure.Figure != null)
                     {
                         s = s.ToUpper();
-                        Field destination =  gameService.Game.Board.Fields[s[0] - 65, ((int)char.GetNumericValue(s[1]) - 1)];
+                        Field destination = gameService.Game.Board.Fields[s[0] - 65, 8 - ((int)char.GetNumericValue(s[1]))];
                         bool movePossible = gameService.MoveFigure(fieldOfFigure.Figure, destination);
-                        if(movePossible)
+                        if (movePossible)
                         {
                             correctInformation = true;
                         }
@@ -217,9 +238,52 @@ if (p1Name != null && p2Name != null)
                             throw new Exception("Move not possible");
                         }
                     }
-                    else
+                    else if (fieldOfFigure != null && fieldOfFigure.Figure as Rook != null && s == "CA")
+                    {
+                        Rook rook = (Rook)fieldOfFigure.Figure;
+
+                        int fieldId = 0;
+
+                        if (gameService.Game.Player1 == gameService.Game.PlayerOnTurn)
+                        {
+                            fieldId = 7 * 10;
+                        }
+                        else
+                        {
+                            fieldId = 0 * 10;
+                        }
+
+                        if (rook.IsKingRook)
+                        {
+                            fieldId += 2;
+                        }
+                        else
+                        {
+                            fieldId += 3;
+                        }
+
+                        Field destination = new(fieldId);
+                        bool movePossible = gameService.MoveFigure(fieldOfFigure.Figure, destination);
+                    }
+                    else if (s == "EX")
                     {
                         break;
+                    }
+                    else
+                    {
+                        throw new Exception("No field selected");
+                    }
+
+                }
+                else
+                {
+                    if (s == null || s == "")
+                    {
+                        throw new Exception("No input");
+                    }
+                    else
+                    {
+                        throw new Exception("Input to large - A1 - H8 or CA when casteling possible");
                     }
 
                 }
