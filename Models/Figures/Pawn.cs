@@ -9,8 +9,8 @@ namespace Chess.Models.Figures
 {
     public class Pawn : Figure
     {
-        public bool IsFirstMove { get; set; } = true;   
-        public bool IsSecondMove { get; set; } = false;
+        public bool TwoStepPossible { get; set; } = true;   
+        public bool EnPassantePossible { get; set; } = false;
         public Pawn(int id, Player player) : base(id, player)
         {
         }

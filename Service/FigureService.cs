@@ -40,15 +40,21 @@ namespace Chess.Service
                             result = ValidateFieldsTillAimAreFree(game, boardService, fieldFigure, destinationField);
 
                             // Edge case for casteling
-                            // King is always on field 0,4 with id 40, bec. the board is reversed for player 2
-                            King? k = game.Board.Fields[0, 4].Figure as King;
 
-                            if (rook != null && rook.IsFirstMove && k != null && k.IsFirstMove)
+                            if (!result)
                             {
-                                // check if fields are free
-                                int colDeltaToKing = k.Id % 10 - rook.Id % 10;
+                                Field? kingField = null;
 
-                                result = ValidateFieldsTillAimAreFree(game, boardService, fieldFigure, game.Board.Fields[0, 4]);
+                                if (game.PlayerOnTurn == game.Player1)
+                                    kingField = game.Board.Fields[3, 0];
+                                else
+                                    kingField = game.Board.Fields[4, 0];
+
+                                if (rook != null && rook.IsFirstMove && kingField != null && kingField.Figure != null && kingField.Figure is King && (kingField.Figure as King).IsFirstMove)
+                                {
+
+                                    result = ValidateFieldsTillAimAreFree(game, boardService, fieldFigure, game.Board.Fields[kingField.Id % 10 + (rook.IsKingRook && game.PlayerOnTurn == game.Player1 ? 1 : -1), kingField.Id / 10]);
+                                }
                             }
                             break;
                         case Bishop bishop:
@@ -86,7 +92,8 @@ namespace Chess.Service
 
 
 
-            if (startField.Figure != null)
+
+            if (startField.Figure != null && destinationField.Figure == null || destinationField.Figure.Player != game.PlayerOnTurn)
             {
                 switch (startField.Figure.GetType())
                 {
@@ -114,7 +121,7 @@ namespace Chess.Service
                                 }
                             }
                         }
-                        else // Case 2 diagonal movement
+                        else if (colDelta == rowDelta) // Case 2 diagonal movement
                         {
                             if (colDelta > 0)
                             {
@@ -144,11 +151,22 @@ namespace Chess.Service
                             }
 
                         }
+                        else
+                        {
+                            result = false;
+                        }
                         break;
                     case Type t when t == typeof(Rook):
-                        if (colDelta == 0)
+                        // Edge case for no straight movement
+
+                        if (colDelta != 0 && rowDelta != 0)
                         {
-                            if (rowDelta > 0)
+                            result = false;
+                        }
+
+                        if (colDelta == 0 && result)
+                        {
+                            if (rowDelta != 0 && rowDelta != 1 && rowDelta != -1)
                             {
                                 for (int i = 1; i < rowDelta && result; i++)
                                 {
@@ -157,10 +175,7 @@ namespace Chess.Service
                                         result = false;
                                     }
                                 }
-                            }
-                            else
-                            {
-                                for (int i = 1; i > rowDelta && result; i--)
+                                for (int i = rowDelta + 1; i < 0 && result; i++)
                                 {
                                     if (fields[startField.Id % 10, startField.Id / 10 + i].Figure != null)
                                     {
@@ -168,13 +183,24 @@ namespace Chess.Service
                                     }
                                 }
                             }
+                            else if (rowDelta == 0)
+                            {
+                                result = false;
+                            }
 
                         }
                         else
                         {
-                            if (colDelta > 0)
+                            if (colDelta != 0 && colDelta != 1 && colDelta != -1)
                             {
-                                for (int i = 1; i < colDelta && result; i++)
+                                for (int i = 1; i < colDelta - 1 && result; i++)
+                                {
+                                    if (fields[startField.Id % 10 + i, startField.Id / 10].Figure != null)
+                                    {
+                                        result = false;
+                                    }
+                                }
+                                for (int i = colDelta + 1; i < 0 && result; i++)
                                 {
                                     if (fields[startField.Id % 10 + i, startField.Id / 10].Figure != null)
                                     {
@@ -182,49 +208,58 @@ namespace Chess.Service
                                     }
                                 }
                             }
-                            else
+                            else if (colDelta == 0)
                             {
-                                for (int i = -1; i > colDelta && result; i--)
-                                {
-                                    if (fields[startField.Id % 10 + i, startField.Id / 10].Figure != null)
-                                    {
-                                        result = false;
-                                    }
-                                }
+                                result = false;
                             }
                         }
 
                         break;
                     case Type t when t == typeof(Bishop):
-                        if (colDelta > 0)
+                        if (colDelta > 0 && rowDelta == colDelta)
                         {
+                            int x = 0;
                             for (int i = 1; i < rowDelta && result; i++)
                             {
-                                for (int x = 1; x < colDelta && result; x++)
+                                x++;
+                                while (x < colDelta && result)
                                 {
                                     if (fields[startField.Id % 10 + x, startField.Id / 10 + i].Figure != null)
                                     {
                                         result = false;
+                                    }
+                                    else
+                                    {
+                                        x++;
+                                        break;
+                                    }
+                                }
+                            }
+                            x = -1;
+                            for (int i = -1; i > rowDelta && result; i--)
+                            {
+                                x++;
+                                while (x < colDelta && result)
+                                {
+                                    if (fields[startField.Id % 10 + x, startField.Id / 10 + i].Figure != null)
+                                    {
+                                        result = false;
+                                    }
+                                    else
+                                    {
+                                        x--;
+                                        break;
                                     }
                                 }
                             }
                         }
                         else
                         {
-                            for (int i = -1; i > rowDelta && result; i--)
-                            {
-                                for (int x = -1; x > colDelta && result; x--)
-                                {
-                                    if (fields[startField.Id % 10 + x, startField.Id / 10 + i].Figure != null)
-                                    {
-                                        result = false;
-                                    }
-                                }
-                            }
+                            result = false;
                         }
                         break;
                     case Type t when t == typeof(Pawn): // Only when moving two fields forward in edge case first move
-                        if (((Pawn)f.Figure).IsFirstMove && Math.Abs(rowDelta) == 2 && colDelta == 0)
+                        if (((Pawn)f.Figure).TwoStepPossible && Math.Abs(rowDelta) == 2 && colDelta == 0)
                         {
                             for (int i = 1; i < rowDelta + 1 && !result; i++)
                             {
@@ -258,31 +293,36 @@ namespace Chess.Service
             Field[,] fields = game.Board.Fields;
 
             int colDelta = destinationField.Id % 10 - pawnField.Id % 10;
-            int rowDelta = Math.Abs(destinationField.Id / 10 - pawnField.Id / 10);
+            int rowDelta = destinationField.Id / 10 - pawnField.Id / 10;
 
 
 
-            // Case 1. default straigt movement
 
-            if (pawn != null)
+            if (pawn != null && rowDelta > 0)
             {
-                if (colDelta == 0 && rowDelta == 1 && destinationField.Figure == null)
+                // Case 1. default straigt movement
+                if ((colDelta == 0 && rowDelta == 1 || colDelta == 0 && rowDelta == -1) && destinationField.Figure == null)
+                {
+                    result = true;
+                    pawn.TwoStepPossible = false;
+                }
+                // Case 2. edge case first move two fields
+                else if (pawn.TwoStepPossible && ValidateFieldsTillAimAreFree(game, boardService, pawnField, destinationField))
                 {
                     result = true;
                 }
-                else if (pawn.IsFirstMove && ValidateFieldsTillAimAreFree(game, boardService, pawnField, destinationField)) // Case 2. edgecase first move two fields
+                // Case 3. edgecase diagonal throw
+                else if ((colDelta == 1 && rowDelta == 1 && destinationField.Figure != null && destinationField.Figure.Player != game.PlayerOnTurn) || (colDelta == -1 && rowDelta == 1 && destinationField.Figure != null && destinationField.Figure.Player != game.PlayerOnTurn))
                 {
                     result = true;
+                    pawn.TwoStepPossible = false;
                 }
-                else if (colDelta == 1 && rowDelta == 1 && destinationField.Figure != null && destinationField.Figure.Player != game.PlayerOnTurn) // Case 3. edgecase diagonal throw
-                {
-                    result = true;
-                }
-                else if (colDelta == -1 && rowDelta == 1 && destinationField.Figure == null) // Case 4. en passant
+                // Case 4. en passant
+                else if ((colDelta == 1 && rowDelta == 1 && destinationField.Figure == null) || (colDelta == -1 && rowDelta == 1 && destinationField.Figure == null))
                 {
                     Field behindAim = fields[destinationField.Id % 10, destinationField.Id / 10 - 1];
 
-                    if (behindAim.Figure != null && behindAim.Figure.GetType() == typeof(Pawn) && ((Pawn)behindAim.Figure).IsSecondMove)
+                    if (behindAim.Figure != null && behindAim.Figure.GetType() == typeof(Pawn) && ((Pawn)behindAim.Figure).EnPassantePossible)
                     {
                         result = true;
                     }
@@ -290,7 +330,7 @@ namespace Chess.Service
             }
             else
             {
-                throw new ArgumentException("Field is not a pawn");
+                throw new Exception("Only forward movement allowed");
             }
 
             return result;

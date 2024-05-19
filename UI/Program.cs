@@ -5,6 +5,7 @@ using Chess.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Numerics;
 using System.Text;
 using System.Xml.Linq;
 
@@ -33,6 +34,7 @@ int maxWidthOfConsole = Console.WindowWidth;
 int maxHeightOfConsole = Console.WindowHeight;
 int cursorTop = maxHeightOfConsole / 5;
 int cursorLeft = (maxWidthOfConsole - 20) / 2;
+bool consoleReload = false;
 
 Console.Write($"Player1: ");
 string? p1Name = "Tob"; // Console.ReadLine();
@@ -63,6 +65,7 @@ if (p1Name != null && p2Name != null)
 
 
         Board board = gameService.GetCurrentBoard();
+
 
         // Only for drawing the board, no logic
         for (int row = -1; row < board.Fields.GetLength(1); row++)
@@ -162,15 +165,33 @@ if (p1Name != null && p2Name != null)
             }
         }
 
-        cursorTop += 2;
+        cursorTop++;
         bool correctInformation = false;
         Field? fieldOfFigure = null;
 
         // Choose figure
         do
         {
+            // Avoiding overflow exception of ui 
+            if (cursorTop > maxHeightOfConsole - 2)
+            {
+                consoleReload = true;
+                break;
+            }
+
             Console.SetCursorPosition(cursorLeft, cursorTop++);
-            Console.Write((gameService != null && gameService.Game! != null ? gameService.Game.PlayerOnTurn.Name : throw new Exception("No Player on turn")) + " choose your figure: ");
+
+            if (!gameService.Game.PlayerOnTurn.IsCheck)
+            {
+                Console.Write((gameService != null && gameService.Game! != null ? gameService.Game.PlayerOnTurn.Name : throw new Exception("No Player on turn")) + " choose your figure: ");
+            }
+            else
+            {
+                // Find the king of the player on turn
+
+                Console.Write((gameService != null && gameService.Game! != null ? gameService.Game.PlayerOnTurn.Name : throw new Exception("No Player on turn")) + $" you are checked - choose your figure: ");
+            }
+
             try
             {
                 string? s = Console.ReadLine();
@@ -208,19 +229,27 @@ if (p1Name != null && p2Name != null)
                 Console.SetCursorPosition(cursorLeft, cursorTop++);
                 Console.WriteLine(ex.Message);
             }
-        } while (!correctInformation);
+        } while (!correctInformation && !consoleReload);
 
         correctInformation = false;
 
         // Choose destination field
         do
         {
+            if (cursorTop > maxHeightOfConsole - 2)
+            {
+                consoleReload = true;
+                break;
+            }
+
             Console.SetCursorPosition(cursorLeft, cursorTop++);
             Console.Write($"Enter your target field {(fieldOfFigure != null && fieldOfFigure.Figure != null && fieldOfFigure.Figure.GetType() == typeof(Rook) && ((Rook)fieldOfFigure.Figure).IsFirstMove ? " - CA for casteling " : "")}");
 
             try
             {
                 string? s = Console.ReadLine();
+                if (s != null)
+                    s = s.ToUpper();
                 if (s != null && s.Trim() != "" && s.Length < 3)
                 {
                     s = s.ToUpper().Trim();
@@ -229,41 +258,26 @@ if (p1Name != null && p2Name != null)
                         s = s.ToUpper();
                         Field destination = gameService.Game.Board.Fields[s[0] - 65, 8 - ((int)char.GetNumericValue(s[1]))];
                         bool movePossible = gameService.MoveFigure(fieldOfFigure.Figure, destination);
-                        if (movePossible)
+                        if (movePossible && !gameService.Game.PlayerOnTurn.IsCheck)
                         {
                             correctInformation = true;
                         }
                         else
                         {
-                            throw new Exception("Move not possible");
+                            if (!gameService.Game.PlayerOnTurn.IsCheck)
+                                throw new Exception("Move not possible");
+                            else
+                            {
+                                throw new Exception("Move not possible - you are checked");
+                            }
                         }
                     }
                     else if (fieldOfFigure != null && fieldOfFigure.Figure as Rook != null && s == "CA")
                     {
                         Rook rook = (Rook)fieldOfFigure.Figure;
 
-                        int fieldId = 0;
-
-                        if (gameService.Game.Player1 == gameService.Game.PlayerOnTurn)
-                        {
-                            fieldId = 7 * 10;
-                        }
-                        else
-                        {
-                            fieldId = 0 * 10;
-                        }
-
-                        if (rook.IsKingRook)
-                        {
-                            fieldId += 2;
-                        }
-                        else
-                        {
-                            fieldId += 3;
-                        }
-
-                        Field destination = new(fieldId);
-                        bool movePossible = gameService.MoveFigure(fieldOfFigure.Figure, destination);
+          
+                        bool movePossible = gameService.MoveFigure((Rook)fieldOfFigure.Figure);
                     }
                     else if (s == "EX")
                     {
@@ -293,7 +307,7 @@ if (p1Name != null && p2Name != null)
                 Console.SetCursorPosition(cursorLeft, cursorTop++);
                 Console.WriteLine(ex.Message);
             }
-        } while (!correctInformation);
+        } while (!correctInformation && !consoleReload);
 
         if (correctInformation)
         {

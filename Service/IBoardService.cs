@@ -19,7 +19,7 @@ namespace Chess.Service
         public bool ValidateFieldPossible(Game game, Field destinationField, Field figureField);
         public void ReverseBoardFields();
         public bool MoveFigure(Game game, Figure figure, Field field);
-        public bool MoveFigure(Game game, King king, Rook rook);
+        public bool MoveFigure(Game game, Rook rook);
         public bool IsCheck(Player player);
         public bool IsCheckAfterMove(int figureId, Field field);
         public bool IsCheckmate(Player player);

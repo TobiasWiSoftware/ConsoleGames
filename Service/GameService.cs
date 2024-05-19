@@ -1,4 +1,5 @@
-﻿using Chess.Models.General;
+﻿using Chess.Models.Figures;
+using Chess.Models.General;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,7 +73,27 @@ namespace Chess.Service
         public bool MoveFigure(Figure figure, Field field)
         {
             if (_game != null)
-                return _boardService.MoveFigure(this._game, figure, field);
+            {
+                bool result = _boardService.MoveFigure(this._game, figure, field);
+                Player opponend = _game.PlayerOnTurn == _game.Player1 ? _game.Player2 : _game.Player1;
+                opponend.IsCheck = _boardService.IsCheck(opponend);
+                return result;
+            }
+            else
+            {
+                throw new Exception("Game not set");
+            }
+        }
+
+        public bool MoveFigure(Rook rook)
+        {
+            if (_game != null)
+            {
+                bool result = _boardService.MoveFigure(this.Game, rook);
+                Player opponend = _game.PlayerOnTurn == _game.Player1 ? _game.Player2 : _game.Player1;
+                opponend.IsCheck = _boardService.IsCheck(opponend);
+                return result;
+            }
             else
             {
                 throw new Exception("Game not set");
